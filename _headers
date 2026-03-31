@@ -1,0 +1,22 @@
+/*
+  Cache-Control: public, max-age=31536000
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/FONTS/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=31536000
+
+/css/styles.css
+  Cache-Control: public, max-age=3600
+
+/js/main.js
+  Cache-Control: public, max-age=3600
+
+/index.html
+  Cache-Control: public, max-age=3600
+
+/admin/*
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow

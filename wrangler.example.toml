@@ -1,0 +1,13 @@
+name = "alpha-drones"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "./"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "form"
+database_id = "your-database-id-here"
+
+[[d1_databases]]
+binding = "ADMIN_DB"
+database_name = "alfadrones-db"
+database_id = "your-database-id-here"

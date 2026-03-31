@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin Panel | Alpha Drones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+        /* Login */
+        .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .login-card { background: white; border-radius: 16px; padding: 48px 40px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); width: 100%; max-width: 400px; text-align: center; }
+        .login-card p { color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+        .login-card input { width: 100%; padding: 14px 16px; border: 1.5px solid #e2eaf3; border-radius: 10px; font-size: 1rem; outline: none; margin-bottom: 16px; }
+        .login-card input:focus { border-color: #0099DB; }
+        .login-error { color: #e74c3c; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+        .btn-login { width: 100%; padding: 14px; background: #0099DB; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn-login:hover { background: #0088c4; }
+
+        /* Dashboard */
+        .dashboard { display: none; }
+        .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; background: #002249; color: white; padding: 24px 0; overflow-y: auto; }
+        .sidebar-brand { padding: 0 24px 24px; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 16px; }
+        .sidebar-nav a { display: flex; align-items: center; gap: 10px; padding: 12px 24px; color: rgba(255,255,255,0.65); text-decoration: none; font-size: 0.9rem; transition: all 0.2s; cursor: pointer; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { color: white; background: rgba(255,255,255,0.08); }
+        .sidebar-nav a i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .sidebar-bottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .btn-logout { background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; }
+        .btn-logout:hover { color: white; }
+
+        .main-content { margin-left: 240px; padding: 32px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+        .top-bar h2 { font-size: 1.5rem; font-weight: 700; }
+        .top-bar-actions { display: flex; gap: 12px; align-items: center; }
+
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .stat-card .stat-label { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .stat-card .stat-value { font-size: 2rem; font-weight: 700; color: #002249; }
+
+        /* Table */
+        .table-wrapper { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); overflow: hidden; }
+        .table-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; gap: 12px; }
+        .search-input { padding: 10px 14px 10px 36px; border: 1.5px solid #e2eaf3; border-radius: 8px; font-size: 0.9rem; outline: none; width: 260px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85zm-5.242.156a5 5 0 1 1 0-10 5 5 0 0 1 0 10z'/%3E%3C/svg%3E") no-repeat 12px center; }
+        .search-input:focus { border-color: #0099DB; }
+        .filter-select { padding: 10px 14px; border: 1.5px solid #e2eaf3; border-radius: 8px; font-size: 0.9rem; outline: none; cursor: pointer; }
+
+        table { width: 100%; border-collapse: collapse; }
+        thead th { padding: 14px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; border-bottom: 1px solid #f0f0f0; font-weight: 600; white-space: nowrap; }
+        tbody td { padding: 14px 16px; font-size: 0.875rem; border-bottom: 1px solid #f8f8f8; }
+        tbody tr:hover { background: #f8fafc; }
+        .service-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: #e8f4fd; color: #0077b6; }
+        .text-muted { color: #999; font-size: 0.8rem; }
+        .btn-icon { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 6px; color: #666; }
+        .btn-icon:hover { background: #f0f0f0; }
+        .btn-icon.danger:hover { background: #fce4e4; color: #e74c3c; }
+        .sortable { cursor: pointer; user-select: none; }
+        .sortable:hover { color: #0099DB; }
+        .sortable i { font-size: 0.6rem; opacity: 0.4; }
+        .sortable.asc i, .sortable.desc i { opacity: 1; color: #0099DB; }
+
+        /* Filter System */
+        .filter-toggle { display: flex; align-items: center; gap: 6px; padding: 10px 16px; border: 1.5px solid #e2eaf3; border-radius: 8px; background: white; font-size: 0.85rem; font-weight: 600; color: #555; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+        .filter-toggle::before { content: ''; position: absolute; top: 0; left: -100%; width: 55%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent); transform: skewX(-18deg); animation: shimmer 2.5s infinite; pointer-events: none; z-index: 2; }
+        .filter-toggle.active::before, .has-filters .filter-toggle::before { animation: none; display: none; }
+        @keyframes shimmer { 0% { left: -100%; } 100% { left: 200%; } }
+        .filter-toggle:hover { border-color: #0099DB; color: #0099DB; }
+        .filter-toggle.active { border-color: #0099DB; background: #e8f4fd; color: #0099DB; }
+        .filter-panel-wrap .filter-count { background: #e74c3c; color: white; font-size: 0.6rem; min-width: 16px; height: 16px; line-height: 16px; text-align: center; padding: 0 4px; border-radius: 8px; display: none; font-weight: 700; margin-left: 2px; flex-shrink: 0; }
+        .filter-panel-wrap.has-filters .filter-count { display: inline-block; }
+
+        /* Filter overlay panel */
+        .filter-panel-wrap { position: relative; }
+        #viewSubmissions { position: relative; }
+        .filter-panel { display: none; position: absolute; left: 0; right: 0; z-index: 50; background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); }
+        .filter-panel.show { display: block; animation: filterFadeIn 0.25s ease; }
+        @keyframes filterFadeIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+
+        .filter-panel-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid #f0f0f0; }
+        .filter-panel-title { font-size: 0.95rem; font-weight: 700; color: #002249; display: flex; align-items: center; gap: 8px; }
+        .filter-panel-title i { color: #0099DB; }
+        .filter-panel-close { background: none; border: none; font-size: 1.2rem; color: #999; cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1; }
+        .filter-panel-close:hover { background: #f0f0f0; color: #333; }
+
+        .filter-panel-body { display: flex; align-items: flex-end; gap: 12px; padding: 20px 24px; flex-wrap: wrap; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+        .filter-group-sm { flex: 0.5; min-width: 80px; max-width: 100px; }
+        .filter-group-lg { flex: 1.8; min-width: 220px; }
+        .filter-group label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #888; font-weight: 600; white-space: nowrap; }
+        .filter-group input, .filter-group select { padding: 9px 12px; border: 1.5px solid #e2eaf3; border-radius: 8px; font-size: 0.84rem; outline: none; background: white; transition: border-color 0.2s, box-shadow 0.2s; }
+        .filter-group input:focus, .filter-group select:focus { border-color: #0099DB; box-shadow: 0 0 0 3px rgba(0,153,219,0.08); }
+        .filter-date-pair { display: flex; gap: 6px; align-items: center; }
+        .filter-date-pair input { flex: 1; min-width: 0; }
+        .filter-date-pair .filter-date-sep { font-size: 0.75rem; color: #ccc; font-weight: 600; flex-shrink: 0; }
+
+        .filter-panel-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-top: 1px solid #f0f0f0; background: #f8fafc; border-radius: 0 0 12px 12px; }
+        .btn-filter-clear { padding: 8px 16px; border: 1.5px solid #e74c3c; border-radius: 8px; background: #fff5f5; font-size: 0.8rem; font-weight: 600; color: #e74c3c; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+        .btn-filter-clear:hover { background: #e74c3c; color: white; }
+        .filter-result-count { font-size: 0.8rem; color: #888; }
+
+        /* Active filter tags */
+        .filter-tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 20px; border-bottom: 1px solid #f0f0f0; background: #fafbfc; }
+        .filter-tag { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 12px; background: #e8f4fd; color: #0077b6; border-radius: 20px; font-size: 0.75rem; font-weight: 600; animation: tagIn 0.2s ease; }
+        @keyframes tagIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .filter-tag .tag-remove { background: none; border: none; color: #0077b6; cursor: pointer; font-size: 0.85rem; padding: 0 2px; line-height: 1; opacity: 0.6; transition: opacity 0.15s; }
+        .filter-tag .tag-remove:hover { opacity: 1; }
+
+        @media (max-width: 768px) {
+            .filter-panel { border-radius: 0 0 12px 12px; }
+            .filter-panel-body { flex-wrap: wrap; }
+            .filter-group { min-width: calc(50% - 6px); }
+        }
+        @media (max-width: 480px) {
+            .filter-group { min-width: 100%; }
+        }
+
+        /* Bulk Actions */
+        .bulk-bar { display: none; padding: 12px 20px; background: #002249; color: white; align-items: center; gap: 16px; justify-content: space-between; }
+        .bulk-bar.show { display: flex; }
+        .bulk-bar-info { font-size: 0.88rem; font-weight: 600; }
+        .bulk-bar-actions { display: flex; gap: 8px; }
+        .btn-bulk-delete { padding: 8px 18px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
+        .btn-bulk-delete:hover { background: #c0392b; }
+        .btn-bulk-cancel { padding: 8px 18px; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-bulk-cancel:hover { background: rgba(255,255,255,0.25); }
+        .row-checkbox { width: 18px; height: 18px; cursor: pointer; accent-color: #0099DB; }
+        thead th:first-child, tbody td:first-child { width: 40px; text-align: center; }
+        tbody tr.selected { background: #e8f4fd; }
+
+        /* Pagination */
+        .pagination { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; }
+        .pagination-info { font-size: 0.85rem; color: #666; }
+        .pagination-btns { display: flex; gap: 4px; }
+        .pagination-btns button { padding: 8px 14px; border: 1px solid #e2eaf3; background: white; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .pagination-btns button:hover { background: #f0f2f5; }
+        .pagination-btns button.active { background: #0099DB; color: white; border-color: #0099DB; }
+        .pagination-btns button:disabled { opacity: 0.4; cursor: default; }
+
+        /* Detail Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal-card { background: white; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f0f0f0; }
+        .modal-header h3 { font-size: 1.1rem; font-weight: 700; }
+        .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #666; padding: 4px; }
+        .modal-body { padding: 24px; }
+        .detail-row { display: flex; padding: 10px 0; border-bottom: 1px solid #f8f8f8; }
+        .detail-label { width: 140px; flex-shrink: 0; font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 0.03em; padding-top: 2px; }
+        .detail-value { font-size: 0.9rem; color: #1a1a2e; flex: 1; word-break: break-word; }
+
+        /* Empty state */
+        .empty-state { padding: 60px 20px; text-align: center; color: #999; }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
+
+        /* Settings Page */
+        .view-page { display: none; }
+        .view-page.active { display: block; }
+        .settings-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); padding: 28px 32px; margin-bottom: 24px; }
+        .settings-card-title { font-size: 0.95rem; font-weight: 700; color: #002249; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .settings-card-title i { color: #0099DB; font-size: 1.1rem; }
+        .settings-card-desc { font-size: 0.82rem; color: #888; margin-bottom: 20px; }
+        .settings-form-row { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+        .settings-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 200px; }
+        .settings-field label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #667; font-weight: 600; }
+        .settings-field input, .settings-field select { padding: 10px 14px; border: 1.5px solid #e2eaf3; border-radius: 8px; font-size: 0.9rem; outline: none; background: white; transition: border-color 0.2s; }
+        .settings-field input:focus, .settings-field select:focus { border-color: #0099DB; }
+        .settings-btn { padding: 10px 24px; background: #0099DB; color: white; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .settings-btn:hover { background: #0088c4; }
+        .settings-btn:disabled { opacity: 0.5; cursor: default; }
+        .settings-msg { font-size: 0.82rem; margin-top: 10px; padding: 8px 12px; border-radius: 6px; display: none; }
+        .settings-msg.success { display: block; background: #e6f9f0; color: #1a8a5c; }
+        .settings-msg.error { display: block; background: #fef0f0; color: #d93025; }
+        .tz-preview { font-size: 0.82rem; color: #667; margin-top: 8px; display: flex; align-items: center; gap: 6px; }
+        .tz-preview i { color: #0099DB; }
+        .lang-option-row { display: flex; gap: 8px; }
+        .lang-option { padding: 10px 20px; border: 1.5px solid #e2eaf3; border-radius: 8px; background: white; font-size: 0.88rem; font-weight: 600; cursor: pointer; color: #555; transition: all 0.2s; }
+        .lang-option:hover { border-color: #0099DB; color: #0099DB; }
+        .lang-option.active { border-color: #0099DB; background: #e8f4fd; color: #0099DB; }
+
+        /* Mobile menu toggle */
+        .menu-toggle { display: none; position: fixed; top: 12px; left: 12px; z-index: 1100; background: #002249; color: white; border: none; border-radius: 8px; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center; }
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1049; }
+        .sidebar-overlay.show { display: block; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .menu-toggle { display: flex; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; z-index: 1050; }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 60px 16px 16px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .search-input { width: 100%; }
+            .table-toolbar { flex-direction: column; align-items: stretch; }
+            table { font-size: 0.8rem; }
+            thead th, tbody td { padding: 10px 8px; }
+            .settings-card { padding: 20px 16px; }
+            .settings-form-row { flex-direction: column; }
+            .settings-field { min-width: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-wrapper" id="loginScreen">
+        <div class="login-card">
+            <img src="../photo/logo.png" alt="Alpha Drones" draggable="false" style="height:64px;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">
+            <p data-i18n="adminPanel"></p>
+            <div class="login-error" id="loginError"></div>
+            <form id="loginForm">
+                <input type="password" id="loginPassword" data-i18n-placeholder="password" required autofocus>
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAACweCEGjQ6ADFY_1" data-theme="light" style="margin-bottom:16px;display:flex;justify-content:center;"></div>
+                <button type="submit" class="btn-login" data-i18n="signIn"></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <button class="menu-toggle" id="menuToggle"><i class="bi bi-list"></i></button>
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand" style="text-align:center;"><img src="../photo/logo.png" alt="Alpha Drones" draggable="false" style="height:70px;max-width:100%;filter:brightness(0) invert(1);"></div>
+            <nav class="sidebar-nav">
+                <a class="active" data-view="submissions"><i class="bi bi-inbox"></i> <span data-i18n="submissions"></span></a>
+                <a href="https://analytics.google.com/analytics/web/#/p14237503650" target="_blank" rel="noopener noreferrer"><i class="bi bi-graph-up"></i> <span data-i18n="analytics"></span></a>
+                <a data-view="settings"><i class="bi bi-gear"></i> <span data-i18n="settings"></span></a>
+            </nav>
+            <div class="sidebar-bottom">
+                <a href="/" class="btn-logout" style="text-decoration:none;margin-bottom:12px;"><i class="bi bi-globe"></i> <span data-i18n="backToSite"></span></a>
+                <button class="btn-logout" id="logoutBtn"><i class="bi bi-box-arrow-left"></i> <span data-i18n="logout"></span></button>
+            </div>
+        </aside>
+
+        <!-- Main -->
+        <main class="main-content">
+            <!-- ========== SUBMISSIONS VIEW ========== -->
+            <div class="view-page active" id="viewSubmissions">
+                <div class="top-bar">
+                    <h2 data-i18n="submissions"></h2>
+                    <div class="top-bar-actions">
+                        <button class="btn-icon" onclick="loadSubmissions()" data-i18n-title="refresh"><i class="bi bi-arrow-clockwise"></i></button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-label" data-i18n="totalSubmissions"></div>
+                        <div class="stat-value" id="statTotal">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label" data-i18n="today"></div>
+                        <div class="stat-value" id="statToday">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label" data-i18n="thisWeek"></div>
+                        <div class="stat-value" id="statWeek">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label" data-i18n="topService"></div>
+                        <div class="stat-value" id="statTopService" style="font-size:1rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Filter overlay -->
+                <div class="filter-panel" id="filterPanel">
+                    <div class="filter-panel-header">
+                        <div class="filter-panel-title"><i class="bi bi-sliders"></i> <span data-i18n="advancedFilters"></span></div>
+                        <button class="filter-panel-close" id="filterPanelClose"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="filter-panel-body">
+                        <div class="filter-group">
+                            <label data-i18n="filterName"></label>
+                            <input type="text" id="filterName" data-i18n-placeholder="filterNamePh">
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterEmail"></label>
+                            <input type="text" id="filterEmail" data-i18n-placeholder="filterEmailPh">
+                        </div>
+                        <div class="filter-group">
+                            <label data-i18n="filterPhone"></label>
+                            <input type="text" id="filterPhone" data-i18n-placeholder="filterPhonePh">
+                        </div>
+                        <div class="filter-group filter-group-sm">
+                            <label data-i18n="filterLanguage"></label>
+                            <select id="filterLang">
+                                <option value="" data-i18n="filterAll"></option>
+                                <option value="az">AZ</option>
+                                <option value="tr">TR</option>
+                                <option value="en">EN</option>
+                                <option value="ru">RU</option>
+                            </select>
+                        </div>
+                        <div class="filter-group filter-group-lg">
+                            <label data-i18n="filterSectionDateTime"></label>
+                            <div class="filter-date-pair">
+                                <input type="date" id="filterDateFrom">
+                                <span class="filter-date-sep">—</span>
+                                <input type="date" id="filterDateTo">
+                            </div>
+                        </div>
+                        <div class="filter-group filter-group-lg">
+                            <label data-i18n="filterTimePeriod"></label>
+                            <div class="filter-date-pair">
+                                <input type="time" id="filterTimeFrom">
+                                <span class="filter-date-sep">—</span>
+                                <input type="time" id="filterTimeTo">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-panel-footer">
+                        <button class="btn-filter-clear" id="clearFilters"><i class="bi bi-arrow-counterclockwise"></i> <span data-i18n="clearFilters"></span></button>
+                        <span class="filter-result-count" id="filterResultCount"></span>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="table-wrapper">
+                    <div class="table-toolbar">
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                            <input type="text" class="search-input" id="searchInput" data-i18n-placeholder="searchPlaceholder">
+                            <div class="filter-panel-wrap">
+                                <button class="filter-toggle" id="filterToggle"><i class="bi bi-sliders"></i> <span data-i18n="advancedFilters"></span><span class="filter-count" id="filterCount">0</span></button>
+                            </div>
+                        </div>
+                        <select class="filter-select" id="serviceFilter">
+                            <option value="" data-i18n="allServices"></option>
+                            <option value="cleaning" data-i18n="svcCleaning"></option>
+                            <option value="mapping" data-i18n="svcMapping"></option>
+                            <option value="inspection" data-i18n="svcInspection"></option>
+                            <option value="3d-modeling" data-i18n="svc3d"></option>
+                            <option value="agriculture" data-i18n="svcAgriculture"></option>
+                            <option value="spraying" data-i18n="svcSpraying"></option>
+                            <option value="patrolling" data-i18n="svcPatrolling"></option>
+                            <option value="confined" data-i18n="svcConfined"></option>
+                            <option value="other" data-i18n="svcOther"></option>
+                        </select>
+                    </div>
+                    <!-- Active filter tags -->
+                    <div class="filter-tags" id="filterTags" style="display:none;"></div>
+                    <div class="bulk-bar" id="bulkBar">
+                        <div class="bulk-bar-info"><span id="bulkCount">0</span> <span data-i18n="selected"></span></div>
+                        <div class="bulk-bar-actions">
+                            <button class="btn-bulk-delete" onclick="bulkDelete()"><i class="bi bi-trash"></i> <span data-i18n="deleteSelected"></span></button>
+                            <button class="btn-bulk-cancel" onclick="clearSelection()" data-i18n="cancel"></button>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" class="row-checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                                    <th class="sortable" data-sort="id"># <i class="bi bi-chevron-expand"></i></th>
+                                    <th class="sortable" data-sort="name"><span data-i18n="thName"></span> <i class="bi bi-chevron-expand"></i></th>
+                                    <th class="sortable" data-sort="email"><span data-i18n="thEmail"></span> <i class="bi bi-chevron-expand"></i></th>
+                                    <th data-i18n="thPhone"></th>
+                                    <th class="sortable" data-sort="service"><span data-i18n="thService"></span> <i class="bi bi-chevron-expand"></i></th>
+                                    <th class="sortable" data-sort="created_at"><span data-i18n="thDate"></span> <i class="bi bi-chevron-expand"></i></th>
+                                    <th data-i18n="thActions"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="submissionsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+
+            <!-- ========== SETTINGS VIEW ========== -->
+            <div class="view-page" id="viewSettings">
+                <div class="top-bar">
+                    <h2 data-i18n="settings"></h2>
+                </div>
+
+                <!-- Language -->
+                <div class="settings-card">
+                    <div class="settings-card-title"><i class="bi bi-translate"></i> <span data-i18n="settingsLang"></span></div>
+                    <div class="settings-card-desc" data-i18n="settingsLangDesc"></div>
+                    <div class="lang-option-row" id="settingsLangRow">
+                        <button class="lang-option" data-lang="az">Azərbaycanca</button>
+                        <button class="lang-option" data-lang="tr">Türkçe</button>
+                        <button class="lang-option" data-lang="en">English</button>
+                    </div>
+                </div>
+
+                <!-- Timezone -->
+                <div class="settings-card">
+                    <div class="settings-card-title"><i class="bi bi-clock"></i> <span data-i18n="settingsTz"></span></div>
+                    <div class="settings-card-desc" data-i18n="settingsTzDesc"></div>
+                    <div class="settings-field" style="max-width:400px;">
+                        <select id="settingsTimezone">
+                            <option value="Asia/Baku">Azerbaycan (GMT+4) — Asia/Baku</option>
+                            <option value="Europe/Istanbul">Türkiye (GMT+3) — Europe/Istanbul</option>
+                            <option value="UTC">UTC (GMT+0)</option>
+                        </select>
+                    </div>
+                    <div class="tz-preview" id="tzPreview"><i class="bi bi-clock-history"></i> <span id="tzPreviewText"></span></div>
+                </div>
+
+                <!-- Password Change -->
+                <div class="settings-card">
+                    <div class="settings-card-title"><i class="bi bi-shield-lock"></i> <span data-i18n="settingsPassword"></span></div>
+                    <div class="settings-card-desc" data-i18n="settingsPasswordDesc"></div>
+                    <form id="changePasswordForm" onsubmit="return false">
+                        <div class="settings-form-row">
+                            <div class="settings-field">
+                                <label data-i18n="currentPassword"></label>
+                                <input type="password" id="currentPassword" required>
+                            </div>
+                            <div class="settings-field">
+                                <label data-i18n="newPassword"></label>
+                                <input type="password" id="newPassword" required minlength="6">
+                            </div>
+                            <div class="settings-field">
+                                <label data-i18n="confirmPassword"></label>
+                                <input type="password" id="confirmPassword" required minlength="6">
+                            </div>
+                        </div>
+                        <button type="submit" class="settings-btn" id="changePasswordBtn" data-i18n="changePassword"></button>
+                        <div class="settings-msg" id="passwordMsg"></div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 data-i18n="submissionDetails"></h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // TRANSLATIONS
+        // ============================================
+        const translations = {
+            en: {
+                adminPanel: 'Admin Panel',
+                password: 'Password',
+                signIn: 'Sign In',
+                wrongPassword: 'Wrong password',
+                connectionError: 'Connection error',
+                loginFailed: 'Login failed',
+                submissions: 'Submissions',
+                analytics: 'Google Analytics',
+                settings: 'Settings',
+                logout: 'Logout',
+                refresh: 'Refresh',
+                totalSubmissions: 'Total Submissions',
+                today: 'Today',
+                thisWeek: 'This Week',
+                topService: 'Top Service',
+                searchPlaceholder: 'Search name, email, phone...',
+                allServices: 'All Services',
+                thName: 'Name',
+                thEmail: 'Email',
+                thPhone: 'Phone',
+                thService: 'Service',
+                thDate: 'Date',
+                thActions: 'Actions',
+                submissionDetails: 'Submission Details',
+                noSubmissions: 'No submissions found',
+                noResults: 'No results',
+                confirmDelete: 'Are you sure you want to delete this submission?',
+                of: 'of',
+                dlName: 'Name', dlEmail: 'Email', dlPhone: 'Phone', dlService: 'Service', dlMessage: 'Message', dlLanguage: 'Language', dlDate: 'Date',
+                dlBuildingType: 'Building Type', dlFloors: 'Floors', dlAreaSize: 'Area Size', dlSurveyPurpose: 'Survey Purpose',
+                dlInspectionType: 'Inspection Type', dlObjectType: 'Object Type', dlIntendedUse: 'Intended Use',
+                dlCropType: 'Crop Type', dlAreaHa: 'Area (ha)', dlSeason: 'Season',
+                dlPatrolFrequency: 'Patrol Frequency', dlCameraType: 'Camera Type', dlSpaceType: 'Space Type', dlAccessMethod: 'Access Method',
+                svcCleaning: 'Facade & Window Cleaning', svcMapping: 'Mapping & Land Surveying', svcInspection: 'Building & Facility Inspection',
+                svc3d: '3D Modeling / Digital Twin', svcAgriculture: 'Plant Health & Yield', svcSpraying: 'Agricultural Spraying',
+                svcPatrolling: 'Visual & Thermal Patrolling', svcConfined: 'Confined Space Inspection', svcOther: 'Other',
+                advancedFilters: 'Filters', filterName: 'Name', filterNamePh: 'Filter by name...', filterEmail: 'Email', filterEmailPh: 'Filter by email...',
+                filterPhone: 'Phone', filterPhonePh: 'Filter by phone...',
+                filterSectionContact: 'Contact Info', filterSectionDateTime: 'Date & Time', filterSectionOther: 'Other',
+                filterDateFrom: 'From Date', filterDateTo: 'To Date', filterTimeFrom: 'From Time', filterTimeTo: 'To Time',
+                filterLanguage: 'Language', filterAll: 'All', clearFilters: 'Clear Filters',
+                // Settings
+                settingsLang: 'Interface Language', settingsLangDesc: 'Choose the admin panel display language.',
+                settingsTz: 'Timezone', settingsTzDesc: 'Submission dates will be displayed in the selected timezone.',
+                settingsPassword: 'Change Password', settingsPasswordDesc: 'Update your admin login password.',
+                currentPassword: 'Current Password', newPassword: 'New Password', confirmPassword: 'Confirm Password',
+                changePassword: 'Change Password',
+                pwSuccess: 'Password changed successfully.', pwMismatch: 'New passwords do not match.',
+                pwWrongCurrent: 'Current password is incorrect.', pwTooShort: 'Password must be at least 6 characters.',
+                pwError: 'An error occurred.',
+                tzNow: 'Current time:',
+                tooManyAttempts: 'Too many failed attempts. Try again in 15 minutes.',
+                selected: 'selected', deleteSelected: 'Delete', cancel: 'Cancel',
+                confirmBulkDelete: 'Are you sure you want to delete {n} submissions?',
+                filterTimePeriod: 'Time Period',
+                backToSite: 'Back to Site',
+            },
+            az: {
+                adminPanel: 'Admin Panel',
+                password: 'Parol',
+                signIn: 'Daxil ol',
+                wrongPassword: 'Yanlış parol',
+                connectionError: 'Bağlantı xətası',
+                loginFailed: 'Giriş uğursuz oldu',
+                submissions: 'Müraciətlər',
+                analytics: 'Google Analytics',
+                settings: 'Parametrlər',
+                logout: 'Çıxış',
+                refresh: 'Yenilə',
+                totalSubmissions: 'Ümumi müraciətlər',
+                today: 'Bu gün',
+                thisWeek: 'Bu həftə',
+                topService: 'Ən çox seçilən',
+                searchPlaceholder: 'Ad, e-poçt, telefon axtar...',
+                allServices: 'Bütün xidmətlər',
+                thName: 'Ad', thEmail: 'E-poçt', thPhone: 'Telefon', thService: 'Xidmət', thDate: 'Tarix', thActions: 'Əməliyyatlar',
+                submissionDetails: 'Müraciət detalları',
+                noSubmissions: 'Müraciət tapılmadı', noResults: 'Nəticə yoxdur',
+                confirmDelete: 'Bu müraciəti silmək istədiyinizə əminsiniz?', of: '/',
+                dlName: 'Ad', dlEmail: 'E-poçt', dlPhone: 'Telefon', dlService: 'Xidmət', dlMessage: 'Mesaj', dlLanguage: 'Dil', dlDate: 'Tarix',
+                dlBuildingType: 'Bina növü', dlFloors: 'Mərtəbə sayı', dlAreaSize: 'Sahə ölçüsü', dlSurveyPurpose: 'Ölçmə məqsədi',
+                dlInspectionType: 'Yoxlama növü', dlObjectType: 'Obyekt növü', dlIntendedUse: 'İstifadə məqsədi',
+                dlCropType: 'Bitki növü', dlAreaHa: 'Sahə (ha)', dlSeason: 'Mövsüm',
+                dlPatrolFrequency: 'Patrul tezliyi', dlCameraType: 'Kamera növü', dlSpaceType: 'Məkan növü', dlAccessMethod: 'Giriş üsulu',
+                svcCleaning: 'Fasad və pəncərə təmizliyi', svcMapping: 'Xəritəçəkmə və torpaq ölçməsi', svcInspection: 'Bina və obyekt yoxlaması',
+                svc3d: '3D Modelləmə / Rəqəmsal Əkiz', svcAgriculture: 'Bitki sağlamlığı və məhsuldarlıq', svcSpraying: 'Kənd təsərrüfatı çiləməsi',
+                svcPatrolling: 'Vizual və termal patrul', svcConfined: 'Qapalı məkan yoxlaması', svcOther: 'Digər',
+                advancedFilters: 'Filtrlər', filterName: 'Ad', filterNamePh: 'Ada görə filtr...', filterEmail: 'E-poçt', filterEmailPh: 'E-poçta görə filtr...',
+                filterPhone: 'Telefon', filterPhonePh: 'Telefona görə filtr...',
+                filterSectionContact: 'Əlaqə məlumatları', filterSectionDateTime: 'Tarix və Saat', filterSectionOther: 'Digər',
+                filterDateFrom: 'Başlanğıc tarix', filterDateTo: 'Son tarix', filterTimeFrom: 'Başlanğıc saat', filterTimeTo: 'Son saat',
+                filterLanguage: 'Dil', filterAll: 'Hamısı', clearFilters: 'Filtrləri təmizlə',
+                settingsLang: 'İnterfeys dili', settingsLangDesc: 'Admin panel görüntü dilini seçin.',
+                settingsTz: 'Saat dilimi', settingsTzDesc: 'Müraciət tarixləri seçilmiş saat diliminə görə göstəriləcək.',
+                settingsPassword: 'Parolu dəyiş', settingsPasswordDesc: 'Admin giriş parolunuzu yeniləyin.',
+                currentPassword: 'Cari parol', newPassword: 'Yeni parol', confirmPassword: 'Yeni parolu təsdiqlə',
+                changePassword: 'Parolu dəyiş',
+                pwSuccess: 'Parol uğurla dəyişdirildi.', pwMismatch: 'Yeni parollar uyğun gəlmir.',
+                pwWrongCurrent: 'Cari parol yanlışdır.', pwTooShort: 'Parol ən azı 6 simvol olmalıdır.',
+                pwError: 'Xəta baş verdi.',
+                tzNow: 'Cari vaxt:',
+                tooManyAttempts: 'Çox sayda uğursuz cəhd. 15 dəqiqə sonra yenidən yoxlayın.',
+                selected: 'seçildi', deleteSelected: 'Sil', cancel: 'Ləğv et',
+                confirmBulkDelete: '{n} müraciəti silmək istədiyinizə əminsiniz?',
+                filterTimePeriod: 'Saat aralığı',
+                backToSite: 'Sayta qayıt',
+            },
+            tr: {
+                adminPanel: 'Admin Paneli',
+                password: 'Şifre',
+                signIn: 'Giriş Yap',
+                wrongPassword: 'Yanlış şifre',
+                connectionError: 'Bağlantı hatası',
+                loginFailed: 'Giriş başarısız',
+                submissions: 'Başvurular',
+                analytics: 'Google Analytics',
+                settings: 'Ayarlar',
+                logout: 'Çıkış',
+                refresh: 'Yenile',
+                totalSubmissions: 'Toplam başvuru',
+                today: 'Bugün',
+                thisWeek: 'Bu hafta',
+                topService: 'En çok seçilen',
+                searchPlaceholder: 'Ad, e-posta, telefon ara...',
+                allServices: 'Tüm hizmetler',
+                thName: 'Ad', thEmail: 'E-posta', thPhone: 'Telefon', thService: 'Hizmet', thDate: 'Tarih', thActions: 'İşlemler',
+                submissionDetails: 'Başvuru Detayları',
+                noSubmissions: 'Başvuru bulunamadı', noResults: 'Sonuç yok',
+                confirmDelete: 'Bu başvuruyu silmek istediğinize emin misiniz?', of: '/',
+                dlName: 'Ad', dlEmail: 'E-posta', dlPhone: 'Telefon', dlService: 'Hizmet', dlMessage: 'Mesaj', dlLanguage: 'Dil', dlDate: 'Tarih',
+                dlBuildingType: 'Bina türü', dlFloors: 'Kat sayısı', dlAreaSize: 'Alan büyüklüğü', dlSurveyPurpose: 'Ölçüm amacı',
+                dlInspectionType: 'Denetim türü', dlObjectType: 'Nesne türü', dlIntendedUse: 'Kullanım amacı',
+                dlCropType: 'Ürün türü', dlAreaHa: 'Alan (ha)', dlSeason: 'Sezon',
+                dlPatrolFrequency: 'Devriye sıklığı', dlCameraType: 'Kamera türü', dlSpaceType: 'Mekan türü', dlAccessMethod: 'Erişim yöntemi',
+                svcCleaning: 'Cephe ve cam temizliği', svcMapping: 'Haritalama ve arazi ölçümü', svcInspection: 'Bina ve tesis denetimi',
+                svc3d: '3D Modelleme / Dijital İkiz', svcAgriculture: 'Bitki sağlığı ve verim tahmini', svcSpraying: 'Tarımsal ilaçlama',
+                svcPatrolling: 'Görsel ve termal devriye', svcConfined: 'Kapalı alan denetimi', svcOther: 'Diğer',
+                advancedFilters: 'Filtreler', filterName: 'Ad', filterNamePh: 'Ada göre filtrele...', filterEmail: 'E-posta', filterEmailPh: 'E-postaya göre filtrele...',
+                filterPhone: 'Telefon', filterPhonePh: 'Telefona göre filtrele...',
+                filterSectionContact: 'İletişim bilgileri', filterSectionDateTime: 'Tarih ve Saat', filterSectionOther: 'Diğer',
+                filterDateFrom: 'Başlangıç tarihi', filterDateTo: 'Bitiş tarihi', filterTimeFrom: 'Başlangıç saati', filterTimeTo: 'Bitiş saati',
+                filterLanguage: 'Dil', filterAll: 'Tümü', clearFilters: 'Filtreleri temizle',
+                settingsLang: 'Arayüz dili', settingsLangDesc: 'Admin panel görüntüleme dilini seçin.',
+                settingsTz: 'Saat dilimi', settingsTzDesc: 'Başvuru tarihleri seçilen saat dilimine göre görüntülenecek.',
+                settingsPassword: 'Şifre değiştir', settingsPasswordDesc: 'Admin giriş şifrenizi güncelleyin.',
+                currentPassword: 'Mevcut şifre', newPassword: 'Yeni şifre', confirmPassword: 'Yeni şifreyi onayla',
+                changePassword: 'Şifre değiştir',
+                pwSuccess: 'Şifre başarıyla değiştirildi.', pwMismatch: 'Yeni şifreler uyuşmuyor.',
+                pwWrongCurrent: 'Mevcut şifre yanlış.', pwTooShort: 'Şifre en az 6 karakter olmalı.',
+                pwError: 'Bir hata oluştu.',
+                tzNow: 'Şu anki saat:',
+                tooManyAttempts: 'Çok fazla başarısız deneme. 15 dakika sonra tekrar deneyin.',
+                selected: 'seçildi', deleteSelected: 'Sil', cancel: 'İptal',
+                confirmBulkDelete: '{n} başvuruyu silmek istediğinize emin misiniz?',
+                filterTimePeriod: 'Saat aralığı',
+                backToSite: 'Siteye Dön',
+            },
+        };
+
+        // ============================================
+        // i18n ENGINE
+        // ============================================
+        let currentLang = localStorage.getItem('admin_lang') || 'en';
+
+        function t(key) {
+            return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+        }
+
+        function getServiceName(serviceKey) {
+            const map = { cleaning:'svcCleaning', mapping:'svcMapping', inspection:'svcInspection', '3d-modeling':'svc3d', agriculture:'svcAgriculture', spraying:'svcSpraying', patrolling:'svcPatrolling', confined:'svcConfined', other:'svcOther' };
+            return t(map[serviceKey] || 'svcOther');
+        }
+
+        function applyTranslations() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.dataset.i18n);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.dataset.i18nPlaceholder);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                el.title = t(el.dataset.i18nTitle);
+            });
+            // Update active lang buttons
+            document.querySelectorAll('.login-lang button, #settingsLangRow .lang-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            });
+            document.documentElement.lang = currentLang;
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('admin_lang', lang);
+            applyTranslations();
+            if (document.getElementById('dashboard').style.display === 'block') {
+                renderStats();
+                renderView();
+                updateTzPreview();
+            }
+        }
+
+        // Settings lang buttons
+        document.querySelectorAll('#settingsLangRow .lang-option').forEach(btn => {
+            btn.addEventListener('click', () => setLang(btn.dataset.lang));
+        });
+
+        // ============================================
+        // TIMEZONE
+        // ============================================
+        let currentTimezone = localStorage.getItem('admin_tz') || 'Asia/Baku';
+
+        document.getElementById('settingsTimezone').value = currentTimezone;
+        document.getElementById('settingsTimezone').addEventListener('change', (e) => {
+            currentTimezone = e.target.value;
+            localStorage.setItem('admin_tz', currentTimezone);
+            updateTzPreview();
+            if (allData.length) {
+                renderView();
+                renderStats();
+            }
+        });
+
+        function updateTzPreview() {
+            const locale = currentLang === 'az' ? 'tr-TR' : currentLang === 'tr' ? 'tr-TR' : 'en-GB';
+            const now = new Date().toLocaleString(locale, {
+                timeZone: currentTimezone,
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+            });
+            document.getElementById('tzPreviewText').textContent = `${t('tzNow')} ${now}`;
+        }
+
+        // ============================================
+        // VIEW NAVIGATION
+        // ============================================
+        document.querySelectorAll('.sidebar-nav a[data-view]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const view = link.dataset.view;
+                // Sidebar active state
+                document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+                link.classList.add('active');
+                // Show/hide views
+                document.querySelectorAll('.view-page').forEach(p => p.classList.remove('active'));
+                if (view === 'submissions') {
+                    document.getElementById('viewSubmissions').classList.add('active');
+                } else if (view === 'settings') {
+                    document.getElementById('viewSettings').classList.add('active');
+                    updateTzPreview();
+                }
+                // Close mobile sidebar
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('sidebarOverlay').classList.remove('show');
+            });
+        });
+
+        // ============================================
+        // APP LOGIC
+        // ============================================
+        const API_BASE = '/api/admin';
+        let allData = [];
+        let currentPage = 1;
+        let currentSearch = '';
+        let currentService = '';
+        let sortField = 'created_at';
+        let sortDir = 'desc';
+        let searchTimeout = null;
+        const PAGE_SIZE = 20;
+
+        // Advanced filter state
+        let filters = { name: '', email: '', phone: '', dateFrom: '', dateTo: '', timeFrom: '', timeTo: '', lang: '' };
+
+        function getToken() { return localStorage.getItem('admin_token'); }
+        function setToken(tk) { localStorage.setItem('admin_token', tk); }
+        function clearToken() { localStorage.removeItem('admin_token'); }
+
+        async function apiCall(endpoint, options = {}) {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`,
+                    ...(options.headers || {}),
+                },
+            });
+            if (res.status === 401) { clearToken(); showLogin(); throw new Error('Unauthorized'); }
+            return res.json();
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pw = document.getElementById('loginPassword').value;
+            const errEl = document.getElementById('loginError');
+            errEl.style.display = 'none';
+
+            const turnstileEl = document.querySelector('#loginForm [name="cf-turnstile-response"]');
+            const turnstileToken = turnstileEl ? turnstileEl.value : '';
+            if (!turnstileToken) {
+                errEl.textContent = t('turnstileRequired') || 'Please complete the verification.';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pw, 'cf-turnstile-response': turnstileToken }),
+                });
+                const data = await res.json();
+                if (data.token) {
+                    setToken(data.token);
+                    showDashboard();
+                } else if (res.status === 429) {
+                    errEl.textContent = t('tooManyAttempts');
+                    errEl.style.display = 'block';
+                } else {
+                    errEl.textContent = t(data.error === 'Wrong password' ? 'wrongPassword' : 'loginFailed');
+                    errEl.style.display = 'block';
+                }
+            } catch {
+                errEl.textContent = t('connectionError');
+                errEl.style.display = 'block';
+            }
+            if (window.turnstile) turnstile.reset();
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            clearToken();
+            showLogin();
+        });
+
+        function showLogin() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            fetchAllData();
+        }
+
+        // Fetch all data ONCE from D1, then work client-side
+        async function fetchAllData() {
+            try {
+                const data = await apiCall('/submissions?limit=10000');
+                allData = data.submissions || [];
+                renderStats();
+                renderView();
+            } catch {}
+        }
+
+        function loadSubmissions() { fetchAllData(); }
+
+        // ============================================
+        // CLIENT-SIDE FILTERING, SORTING, PAGINATION
+        // ============================================
+
+        // Convert UTC date string to timezone-adjusted date/time strings
+        function toTz(utcStr) {
+            if (!utcStr) return { date: '', time: '' };
+            const d = new Date(utcStr + (utcStr.includes('Z') || utcStr.includes('+') ? '' : 'Z'));
+            // Get parts in target timezone
+            const parts = {};
+            ['year','month','day','hour','minute'].forEach(part => {
+                const opt = {};
+                if (part === 'year') opt.year = 'numeric';
+                else if (part === 'month') opt.month = '2-digit';
+                else if (part === 'day') opt.day = '2-digit';
+                else if (part === 'hour') { opt.hour = '2-digit'; opt.hour12 = false; }
+                else if (part === 'minute') opt.minute = '2-digit';
+                parts[part] = new Intl.DateTimeFormat('en-GB', { ...opt, timeZone: currentTimezone }).format(d);
+            });
+            return {
+                date: `${parts.year}-${parts.month}-${parts.day}`,
+                time: `${parts.hour}:${parts.minute}`,
+            };
+        }
+
+        function getFilteredData() {
+            let result = [...allData];
+
+            if (currentService) {
+                result = result.filter(s => s.service === currentService);
+            }
+
+            if (currentSearch) {
+                const q = currentSearch.toLowerCase();
+                result = result.filter(s =>
+                    (s.name && s.name.toLowerCase().includes(q)) ||
+                    (s.email && s.email.toLowerCase().includes(q)) ||
+                    (s.phone && s.phone.toLowerCase().includes(q)) ||
+                    (s.message && s.message.toLowerCase().includes(q))
+                );
+            }
+
+            // Advanced filters
+            if (filters.name) {
+                const q = filters.name.toLowerCase();
+                result = result.filter(s => s.name && s.name.toLowerCase().includes(q));
+            }
+            if (filters.email) {
+                const q = filters.email.toLowerCase();
+                result = result.filter(s => s.email && s.email.toLowerCase().includes(q));
+            }
+            if (filters.phone) {
+                const q = filters.phone.toLowerCase();
+                result = result.filter(s => s.phone && s.phone.toLowerCase().includes(q));
+            }
+            if (filters.lang) {
+                result = result.filter(s => s.lang === filters.lang);
+            }
+            // Date/time filters use timezone-converted values
+            if (filters.dateFrom || filters.dateTo || filters.timeFrom || filters.timeTo) {
+                result = result.filter(s => {
+                    const tz = toTz(s.created_at);
+                    if (filters.dateFrom && tz.date < filters.dateFrom) return false;
+                    if (filters.dateTo && tz.date > filters.dateTo) return false;
+                    if (filters.timeFrom && tz.time < filters.timeFrom) return false;
+                    if (filters.timeTo && tz.time > filters.timeTo) return false;
+                    return true;
+                });
+            }
+
+            // Sort
+            result.sort((a, b) => {
+                let valA = a[sortField] || '';
+                let valB = b[sortField] || '';
+                if (sortField === 'id') { valA = Number(valA); valB = Number(valB); }
+                else { valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase(); }
+                if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            return result;
+        }
+
+        function getActiveFilterCount() {
+            let count = 0;
+            if (filters.name) count++;
+            if (filters.email) count++;
+            if (filters.phone) count++;
+            if (filters.dateFrom || filters.dateTo) count++;
+            if (filters.timeFrom || filters.timeTo) count++;
+            if (filters.lang) count++;
+            return count;
+        }
+
+        function updateFilterBadge() {
+            const count = getActiveFilterCount();
+            const wrap = document.querySelector('.filter-panel-wrap');
+            const badge = document.getElementById('filterCount');
+            badge.textContent = count;
+            wrap.classList.toggle('has-filters', count > 0);
+        }
+
+        function renderView() {
+            const filtered = getFilteredData();
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageData = filtered.slice(start, start + PAGE_SIZE);
+
+            renderTable(pageData, filtered.length);
+            renderPagination(filtered.length, totalPages);
+            updateSortHeaders();
+            updateFilterBadge();
+            renderFilterTags();
+            updateFilterResultCount();
+        }
+
+        function renderStats() {
+            document.getElementById('statTotal').textContent = allData.length;
+
+            // Today in selected timezone
+            const todayTz = toTz(new Date().toISOString()).date;
+            document.getElementById('statToday').textContent = allData.filter(s => {
+                const tz = toTz(s.created_at);
+                return tz.date === todayTz;
+            }).length;
+
+            const weekAgoDate = new Date(Date.now() - 7 * 86400000);
+            const weekAgoTz = toTz(weekAgoDate.toISOString()).date;
+            document.getElementById('statWeek').textContent = allData.filter(s => {
+                const tz = toTz(s.created_at);
+                return tz.date >= weekAgoTz;
+            }).length;
+
+            const serviceCounts = {};
+            allData.forEach(s => { serviceCounts[s.service] = (serviceCounts[s.service] || 0) + 1; });
+            const top = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0];
+            document.getElementById('statTopService').textContent = top ? getServiceName(top[0]) : '-';
+        }
+
+        let selectedIds = new Set();
+
+        function renderTable(subs, totalFiltered) {
+            const tbody = document.getElementById('submissionsBody');
+
+            if (!subs.length) {
+                tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="bi bi-inbox"></i>${t('noSubmissions')}</div></td></tr>`;
+                updateBulkBar();
+                return;
+            }
+
+            tbody.innerHTML = subs.map(s => `
+                <tr class="${selectedIds.has(s.id) ? 'selected' : ''}">
+                    <td><input type="checkbox" class="row-checkbox" ${selectedIds.has(s.id) ? 'checked' : ''} onchange="toggleSelect(${s.id}, this)"></td>
+                    <td class="text-muted">${s.id}</td>
+                    <td><strong>${esc(s.name)}</strong></td>
+                    <td>${esc(s.email)}</td>
+                    <td>${s.phone ? esc(s.phone) : '<span class="text-muted">-</span>'}</td>
+                    <td><span class="service-badge">${getServiceName(s.service)}</span></td>
+                    <td class="text-muted">${formatDate(s.created_at)}</td>
+                    <td>
+                        <button class="btn-icon" onclick="viewDetail(${s.id})" title="${t('submissionDetails')}"><i class="bi bi-eye"></i></button>
+                        <button class="btn-icon danger" onclick="deleteSubmission(${s.id})" title="${t('confirmDelete')}"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+            updateSelectAllCheckbox();
+            updateBulkBar();
+        }
+
+        function toggleSelect(id, checkbox) {
+            if (checkbox.checked) {
+                selectedIds.add(id);
+                checkbox.closest('tr').classList.add('selected');
+            } else {
+                selectedIds.delete(id);
+                checkbox.closest('tr').classList.remove('selected');
+            }
+            updateSelectAllCheckbox();
+            updateBulkBar();
+        }
+
+        function toggleSelectAll(checkbox) {
+            const filtered = getFilteredData();
+            const start = (currentPage - 1) * PAGE_SIZE;
+            const pageData = filtered.slice(start, start + PAGE_SIZE);
+
+            if (checkbox.checked) {
+                pageData.forEach(s => selectedIds.add(s.id));
+            } else {
+                pageData.forEach(s => selectedIds.delete(s.id));
+            }
+            renderView();
+        }
+
+        function updateSelectAllCheckbox() {
+            const checkboxes = document.querySelectorAll('#submissionsBody .row-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            if (!checkboxes.length) { selectAll.checked = false; return; }
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const someChecked = Array.from(checkboxes).some(cb => cb.checked);
+            selectAll.checked = allChecked;
+            selectAll.indeterminate = someChecked && !allChecked;
+        }
+
+        function updateBulkBar() {
+            const bar = document.getElementById('bulkBar');
+            const count = selectedIds.size;
+            document.getElementById('bulkCount').textContent = count;
+            bar.classList.toggle('show', count > 0);
+        }
+
+        function clearSelection() {
+            selectedIds.clear();
+            renderView();
+        }
+
+        async function bulkDelete() {
+            const count = selectedIds.size;
+            if (!count) return;
+            if (!confirm(t('confirmBulkDelete').replace('{n}', count))) return;
+            try {
+                const ids = Array.from(selectedIds).join(',');
+                await apiCall(`/submissions?ids=${ids}`, { method: 'DELETE' });
+                allData = allData.filter(s => !selectedIds.has(s.id));
+                selectedIds.clear();
+                renderStats();
+                renderView();
+            } catch {}
+        }
+
+        function renderPagination(total, totalPages) {
+            const el = document.getElementById('pagination');
+            const start = (currentPage - 1) * PAGE_SIZE + 1;
+            const end = Math.min(currentPage * PAGE_SIZE, total);
+
+            let btns = '';
+            btns += `<button ${currentPage <= 1 ? 'disabled' : ''} onclick="goPage(${currentPage - 1})"><i class="bi bi-chevron-left"></i></button>`;
+
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            if (endPage - startPage < 4) startPage = Math.max(1, endPage - 4);
+
+            if (startPage > 1) btns += `<button onclick="goPage(1)">1</button>`;
+            if (startPage > 2) btns += `<button disabled>...</button>`;
+            for (let i = startPage; i <= endPage; i++) {
+                btns += `<button class="${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+            }
+            if (endPage < totalPages - 1) btns += `<button disabled>...</button>`;
+            if (endPage < totalPages) btns += `<button onclick="goPage(${totalPages})">${totalPages}</button>`;
+
+            btns += `<button ${currentPage >= totalPages ? 'disabled' : ''} onclick="goPage(${currentPage + 1})"><i class="bi bi-chevron-right"></i></button>`;
+
+            el.innerHTML = `
+                <div class="pagination-info">${total ? `${start}-${end} ${t('of')} ${total}` : t('noResults')}</div>
+                <div class="pagination-btns">${btns}</div>
+            `;
+        }
+
+        function goPage(p) { currentPage = p; renderView(); }
+
+        // Sort headers
+        function updateSortHeaders() {
+            document.querySelectorAll('.sortable').forEach(th => {
+                th.classList.remove('asc', 'desc');
+                const icon = th.querySelector('i');
+                if (th.dataset.sort === sortField) {
+                    th.classList.add(sortDir);
+                    icon.className = sortDir === 'asc' ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+                } else {
+                    icon.className = 'bi bi-chevron-expand';
+                }
+            });
+        }
+
+        document.querySelectorAll('.sortable').forEach(th => {
+            th.addEventListener('click', () => {
+                const field = th.dataset.sort;
+                if (sortField === field) {
+                    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortField = field;
+                    sortDir = field === 'created_at' ? 'desc' : 'asc';
+                }
+                currentPage = 1;
+                renderView();
+            });
+        });
+
+        // Search & Filter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearch = e.target.value.trim();
+                currentPage = 1;
+                renderView();
+            }, 200);
+        });
+
+        document.getElementById('serviceFilter').addEventListener('change', (e) => {
+            currentService = e.target.value;
+            currentPage = 1;
+            renderView();
+        });
+
+        function removeServiceFilter() {
+            currentService = '';
+            document.getElementById('serviceFilter').value = '';
+            currentPage = 1;
+            renderView();
+        }
+
+        // Filter panel positioning & toggle
+        function repositionFilterPanel() {
+            const panel = document.getElementById('filterPanel');
+            const tableWrapper = document.querySelector('#viewSubmissions .table-wrapper');
+            if (panel.classList.contains('show') && tableWrapper) {
+                panel.style.bottom = (panel.parentElement.offsetHeight - tableWrapper.offsetTop + 3) + 'px';
+            }
+        }
+
+        function toggleFilterPanel() {
+            const panel = document.getElementById('filterPanel');
+            const toggle = document.getElementById('filterToggle');
+            panel.classList.toggle('show');
+            toggle.classList.toggle('active', panel.classList.contains('show'));
+            repositionFilterPanel();
+        }
+
+        document.getElementById('filterToggle').addEventListener('click', toggleFilterPanel);
+        document.getElementById('filterPanelClose').addEventListener('click', toggleFilterPanel);
+
+        // Filter apply helper
+        function applyFilter() {
+            currentPage = 1;
+            renderView();
+            updateFilterBadge();
+            renderFilterTags();
+            updateFilterResultCount();
+            repositionFilterPanel();
+        }
+
+        // Advanced filter inputs
+        ['filterName', 'filterEmail', 'filterPhone'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const key = id.replace('filter', '').toLowerCase();
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    filters[key] = e.target.value.trim();
+                    applyFilter();
+                }, 200);
+            });
+        });
+
+        ['filterDateFrom', 'filterDateTo', 'filterTimeFrom', 'filterTimeTo'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (e) => {
+                const key = id.replace('filter', '');
+                const camel = key.charAt(0).toLowerCase() + key.slice(1);
+                filters[camel] = e.target.value;
+                applyFilter();
+            });
+        });
+
+        document.getElementById('filterLang').addEventListener('change', (e) => {
+            filters.lang = e.target.value;
+            applyFilter();
+        });
+
+        document.getElementById('clearFilters').addEventListener('click', () => {
+            filters = { name: '', email: '', phone: '', dateFrom: '', dateTo: '', timeFrom: '', timeTo: '', lang: '' };
+            ['filterName','filterEmail','filterPhone','filterDateFrom','filterDateTo','filterTimeFrom','filterTimeTo','filterLang'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+            applyFilter();
+        });
+
+        // Remove a single filter
+        function removeFilter(key) {
+            if (key === 'service') { removeServiceFilter(); return; }
+            if (key === 'date') { filters.dateFrom = ''; filters.dateTo = ''; document.getElementById('filterDateFrom').value = ''; document.getElementById('filterDateTo').value = ''; }
+            else if (key === 'time') { filters.timeFrom = ''; filters.timeTo = ''; document.getElementById('filterTimeFrom').value = ''; document.getElementById('filterTimeTo').value = ''; }
+            else { filters[key] = ''; const el = document.getElementById('filter' + key.charAt(0).toUpperCase() + key.slice(1)); if (el) el.value = ''; }
+            applyFilter();
+        }
+
+        // Render active filter tags
+        function renderFilterTags() {
+            const container = document.getElementById('filterTags');
+            const tags = [];
+            const tagLabels = {
+                name: t('filterName'), email: t('filterEmail'), phone: t('filterPhone'), lang: t('filterLanguage'),
+                date: t('filterSectionDateTime'), time: t('filterTimePeriod') || t('filterSectionDateTime')
+            };
+
+            if (currentService) tags.push({ key: 'service', label: t('thService'), value: getServiceName(currentService) });
+            if (filters.name) tags.push({ key: 'name', label: tagLabels.name, value: filters.name });
+            if (filters.email) tags.push({ key: 'email', label: tagLabels.email, value: filters.email });
+            if (filters.phone) tags.push({ key: 'phone', label: tagLabels.phone, value: filters.phone });
+            if (filters.lang) tags.push({ key: 'lang', label: tagLabels.lang, value: filters.lang.toUpperCase() });
+            if (filters.dateFrom || filters.dateTo) tags.push({ key: 'date', label: tagLabels.date, value: [filters.dateFrom, filters.dateTo].filter(Boolean).join(' — ') });
+            if (filters.timeFrom || filters.timeTo) tags.push({ key: 'time', label: tagLabels.time, value: [filters.timeFrom, filters.timeTo].filter(Boolean).join(' — ') });
+
+            if (tags.length === 0) { container.style.display = 'none'; return; }
+
+            container.style.display = 'flex';
+            container.innerHTML = tags.map(tag =>
+                `<span class="filter-tag">${tag.label}: ${esc(tag.value)} <button class="tag-remove" onclick="removeFilter('${tag.key}')">&times;</button></span>`
+            ).join('');
+        }
+
+        function updateFilterResultCount() {
+            const count = getFilteredData().length;
+            const el = document.getElementById('filterResultCount');
+            if (el) el.textContent = `${count} ${t('of')} ${allData.length}`;
+        }
+
+        // Detail Modal
+        function viewDetail(id) {
+            const s = allData.find(x => x.id === id);
+            if (!s) return;
+
+            const tzDate = formatDateFull(s.created_at);
+            const fields = [
+                [t('dlName'), s.name],
+                [t('dlEmail'), s.email],
+                [t('dlPhone'), s.phone],
+                [t('dlService'), getServiceName(s.service)],
+                [t('dlMessage'), s.message],
+                [t('dlLanguage'), s.lang],
+                [t('dlDate'), tzDate],
+            ];
+
+            const extra = {
+                cleaning: [[t('dlBuildingType'), s.building_type], [t('dlFloors'), s.floors]],
+                mapping: [[t('dlAreaSize'), s.area_size], [t('dlSurveyPurpose'), s.survey_purpose]],
+                inspection: [[t('dlBuildingType'), s.inspection_building_type], [t('dlInspectionType'), s.inspection_type]],
+                '3d-modeling': [[t('dlObjectType'), s.object_type], [t('dlIntendedUse'), s.intended_use]],
+                agriculture: [[t('dlCropType'), s.crop_type], [t('dlAreaHa'), s.area_ha]],
+                spraying: [[t('dlCropType'), s.spray_crop_type], [t('dlAreaHa'), s.spray_area_ha], [t('dlSeason'), s.season]],
+                patrolling: [[t('dlPatrolFrequency'), s.patrol_frequency], [t('dlCameraType'), s.camera_type]],
+                confined: [[t('dlSpaceType'), s.space_type], [t('dlAccessMethod'), s.access_method]],
+            };
+
+            const serviceFields = extra[s.service] || [];
+            serviceFields.forEach(([label, val]) => { if (val) fields.push([label, val]); });
+
+            document.getElementById('modalBody').innerHTML = fields
+                .filter(([, v]) => v)
+                .map(([label, val]) => `
+                    <div class="detail-row">
+                        <div class="detail-label">${label}</div>
+                        <div class="detail-value">${esc(String(val))}</div>
+                    </div>
+                `).join('');
+
+            document.getElementById('detailModal').classList.add('show');
+        }
+
+        function closeModal() { document.getElementById('detailModal').classList.remove('show'); }
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeModal();
+        });
+
+        // Delete
+        async function deleteSubmission(id) {
+            if (!confirm(t('confirmDelete'))) return;
+            try {
+                await apiCall(`/submissions?id=${id}`, { method: 'DELETE' });
+                allData = allData.filter(s => s.id !== id);
+                renderStats();
+                renderView();
+            } catch {}
+        }
+
+        // ============================================
+        // PASSWORD CHANGE
+        // ============================================
+        // Password change - use click instead of form submit to avoid CSP issues
+        document.getElementById('changePasswordBtn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('passwordMsg');
+            msgEl.className = 'settings-msg';
+            msgEl.textContent = '';
+
+            const currentPw = document.getElementById('currentPassword').value;
+            const newPw = document.getElementById('newPassword').value;
+            const confirmPw = document.getElementById('confirmPassword').value;
+
+            if (!currentPw || !newPw || !confirmPw) {
+                msgEl.textContent = t('pwError') + ' — Fill all fields';
+                msgEl.className = 'settings-msg error';
+                return;
+            }
+            if (newPw.length < 6) {
+                msgEl.textContent = t('pwTooShort');
+                msgEl.className = 'settings-msg error';
+                return;
+            }
+            if (newPw !== confirmPw) {
+                msgEl.textContent = t('pwMismatch');
+                msgEl.className = 'settings-msg error';
+                return;
+            }
+
+            msgEl.textContent = '...';
+            msgEl.className = 'settings-msg success';
+
+            try {
+                const res = await fetch(API_BASE + '/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken(),
+                    },
+                    body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+                });
+                const text = await res.text();
+                var data;
+                try { data = JSON.parse(text); } catch { data = { error: text }; }
+
+                if (data.success) {
+                    msgEl.textContent = t('pwSuccess');
+                    msgEl.className = 'settings-msg success';
+                    document.getElementById('currentPassword').value = '';
+                    document.getElementById('newPassword').value = '';
+                    document.getElementById('confirmPassword').value = '';
+                } else if (data.error === 'wrong_current') {
+                    msgEl.textContent = t('pwWrongCurrent');
+                    msgEl.className = 'settings-msg error';
+                } else if (data.error === 'too_short') {
+                    msgEl.textContent = t('pwTooShort');
+                    msgEl.className = 'settings-msg error';
+                } else {
+                    msgEl.textContent = t('pwError') + ' [' + res.status + '] ' + (data.error || data.details || '');
+                    msgEl.className = 'settings-msg error';
+                }
+            } catch (err) {
+                msgEl.textContent = t('pwError') + ' — ' + err.message;
+                msgEl.className = 'settings-msg error';
+            }
+        });
+
+        // ============================================
+        // UTILS
+        // ============================================
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        function formatDate(utcStr) {
+            if (!utcStr) return '-';
+            const d = new Date(utcStr + (utcStr.includes('Z') || utcStr.includes('+') ? '' : 'Z'));
+            const locale = currentLang === 'az' ? 'tr-TR' : currentLang === 'tr' ? 'tr-TR' : 'en-GB';
+            return d.toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: currentTimezone });
+        }
+
+        function formatDateFull(utcStr) {
+            if (!utcStr) return '-';
+            const d = new Date(utcStr + (utcStr.includes('Z') || utcStr.includes('+') ? '' : 'Z'));
+            const locale = currentLang === 'az' ? 'tr-TR' : currentLang === 'tr' ? 'tr-TR' : 'en-GB';
+            return d.toLocaleString(locale, {
+                day: '2-digit', month: 'long', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+                timeZone: currentTimezone,
+            });
+        }
+
+        // Mobile sidebar toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('show');
+        });
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('show');
+        });
+
+        // Init
+        applyTranslations();
+        updateTzPreview();
+        if (getToken()) { showDashboard(); } else { showLogin(); }
+    </script>
+</body>
+</html>
